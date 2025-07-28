@@ -26,10 +26,7 @@ Brokex Protocol BOT
 
 1. **Clone The Repositories:**
    ```bash
-   git clone https://github.com/vonssy/Brokex-BOT.git
-   ```
-   ```bash
-   cd Brokex-BOT
+   git clone https://github.com/airdropbomb/Brokex.git && cd Brokex
    ```
 
 2. **Install Requirements:**
