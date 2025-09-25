@@ -22,12 +22,12 @@ class Brokex:
             "Sec-Fetch-Site": "cross-site",
             "User-Agent": FakeUserAgent().random
         }
-        self.BASE_API = "https://proofcrypto-production.up.railway.app"
+        self.BASE_API = "https://proof.brokex.trade"
         self.RPC_URL = "https://testnet.dplabs-internal.com/"
         self.PHRS_CONTRACT_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
         self.USDT_CONTRACT_ADDRESS = "0x78ac5e2d8a78a8b8e6d10c7b7274b03c10c91cef"
-        self.FAUCET_ROUTER_ADDRESS = "0x50576285BD33261DEe1aD99BF766CD8249520a58"
-        self.TRADE_ROUTER_ADDRESS = "0xDe897635870b3Dd2e097C09f1cd08841DBc3976a"
+        self.FAUCET_ROUTER_ADDRESS = "0xa7Bb3C282Ff1eFBc3F2D8fcd60AaAB3aeE3CBa49"
+        self.TRADE_ROUTER_ADDRESS = "0x34f89ca5a1c6dc4eb67dfe0af5b621185df32854"
         self.POOL_ROUTER_ADDRESS = "0x9A88d07850723267DB386C681646217Af7e220d7"
         self.ERC20_CONTRACT_ABI = json.loads('''[
             {"type":"function","name":"balanceOf","stateMutability":"view","inputs":[{"name":"address","type":"address"}],"outputs":[{"name":"","type":"uint256"}]},
@@ -171,7 +171,6 @@ class Brokex:
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}{message}",
             flush=True
         )
-
     def welcome(self):
         print(
             f"""
@@ -190,23 +189,14 @@ class Brokex:
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
     
-    async def load_proxies(self, use_proxy_choice: bool):
+    async def load_proxies(self):
         filename = "proxy.txt"
         try:
-            if use_proxy_choice == 1:
-                async with ClientSession(timeout=ClientTimeout(total=30)) as session:
-                    async with session.get("https://raw.githubusercontent.com/monosans/proxy-list/refs/heads/main/proxies/http.txt") as response:
-                        response.raise_for_status()
-                        content = await response.text()
-                        with open(filename, 'w') as f:
-                            f.write(content)
-                        self.proxies = [line.strip() for line in content.splitlines() if line.strip()]
-            else:
-                if not os.path.exists(filename):
-                    self.log(f"{Fore.RED + Style.BRIGHT}File {filename} Not Found.{Style.RESET_ALL}")
-                    return
-                with open(filename, 'r') as f:
-                    self.proxies = [line.strip() for line in f.read().splitlines() if line.strip()]
+            if not os.path.exists(filename):
+                self.log(f"{Fore.RED + Style.BRIGHT}File {filename} Not Found.{Style.RESET_ALL}")
+                return
+            with open(filename, 'r') as f:
+                self.proxies = [line.strip() for line in f.read().splitlines() if line.strip()]
             
             if not self.proxies:
                 self.log(f"{Fore.RED + Style.BRIGHT}No Proxies Found.{Style.RESET_ALL}")
@@ -528,9 +518,9 @@ class Brokex:
             
             open_amount = int(self.open_amount * (10 ** decimals))
 
-            await self.approving_token(account, address, self.POOL_ROUTER_ADDRESS, asset_address, open_amount, use_proxy)
+            await self.approving_token(account, address, self.POOL_ROUTER_ADDRESS, asset_address, self.open_amount, use_proxy)
 
-            await self.approving_token(account, address, self.TRADE_ROUTER_ADDRESS, asset_address, open_amount, use_proxy)
+            await self.approving_token(account, address, self.TRADE_ROUTER_ADDRESS, asset_address, self.open_amount, use_proxy)
 
             proof = await self.get_proof(address, pair, use_proxy)
             if not proof:
@@ -616,7 +606,7 @@ class Brokex:
             
             deposit_lp_amount = int(self.deposit_lp_amount * (10 ** decimals))
 
-            await self.approving_token(account, address, self.POOL_ROUTER_ADDRESS, asset_address, deposit_lp_amount, use_proxy)
+            await self.approving_token(account, address, self.POOL_ROUTER_ADDRESS, asset_address, self.deposit_lp_amount, use_proxy)
 
             token_contract = web3.eth.contract(address=web3.to_checksum_address(self.POOL_ROUTER_ADDRESS), abi=self.BROKEX_CONTRACT_ABI)
 
@@ -905,36 +895,34 @@ class Brokex:
 
         while True:
             try:
-                print(f"{Fore.WHITE + Style.BRIGHT}1. Run With Free Proxyscrape Proxy{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}2. Run With Private Proxy{Style.RESET_ALL}")
-                print(f"{Fore.WHITE + Style.BRIGHT}3. Run Without Proxy{Style.RESET_ALL}")
-                choose = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3] -> {Style.RESET_ALL}").strip())
+                print(f"{Fore.WHITE + Style.BRIGHT}1. Run With Proxy{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}2. Run Without Proxy{Style.RESET_ALL}")
+                proxy_choice = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2] -> {Style.RESET_ALL}").strip())
 
-                if choose in [1, 2, 3]:
+                if proxy_choice in [1, 2]:
                     proxy_type = (
-                        "With Free Proxyscrape" if choose == 1 else 
-                        "With Private" if choose == 2 else 
+                        "With" if proxy_choice == 1 else 
                         "Without"
                     )
                     print(f"{Fore.GREEN + Style.BRIGHT}Run {proxy_type} Proxy Selected.{Style.RESET_ALL}")
                     break
                 else:
-                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2 or 3.{Style.RESET_ALL}")
+                    print(f"{Fore.RED + Style.BRIGHT}Please enter either 1 or 2.{Style.RESET_ALL}")
             except ValueError:
-                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2 or 3).{Style.RESET_ALL}")
+                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1 or 2).{Style.RESET_ALL}")
 
-        rotate = False
-        if choose in [1, 2]:
+        rotate_proxy = False
+        if proxy_choice == 1:
             while True:
-                rotate = input(f"{Fore.BLUE + Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> {Style.RESET_ALL}").strip()
+                rotate_proxy = input(f"{Fore.BLUE + Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> {Style.RESET_ALL}").strip()
 
-                if rotate in ["y", "n"]:
-                    rotate = rotate == "y"
+                if rotate_proxy in ["y", "n"]:
+                    rotate_proxy = rotate_proxy == "y"
                     break
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Style.RESET_ALL}")
 
-        return option, choose, rotate
+        return option, proxy_choice, rotate_proxy
     
     async def check_connection(self, proxy_url=None):
         connector, proxy, proxy_auth = self.build_proxy_config(proxy_url)
@@ -968,7 +956,7 @@ class Brokex:
                     continue
                 return None
         
-    async def process_check_connection(self, address: int, use_proxy: bool, rotate_proxy: bool):
+    async def process_check_connection(self, address: str, use_proxy: bool, rotate_proxy: bool):
         while True:
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
             self.log(
@@ -1133,7 +1121,7 @@ class Brokex:
     async def process_option_1(self, account: str, address: str, use_proxy):
         self.log(
             f"{Fore.MAGENTA+Style.BRIGHT} ● {Style.RESET_ALL}"
-            f"{Fore.GREEN+Style.BRIGHT} Claim Faucet{Style.RESET_ALL}"
+            f"{Fore.GREEN+Style.BRIGHT}Claim Faucet{Style.RESET_ALL}"
         )
 
         await self.process_perform_claim_faucet(account, address, use_proxy)
@@ -1336,89 +1324,91 @@ class Brokex:
     async def process_accounts(self, account: str, address: str, option: int, use_proxy: bool, rotate_proxy: bool):
         is_valid = await self.process_check_connection(address, use_proxy, rotate_proxy)
         if is_valid:
-            web3 = await self.get_web3_with_check(address, use_proxy)
-            if not web3:
+            
+            try:
+                web3 = await self.get_web3_with_check(address, use_proxy)
+            except Exception as e:
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Status  :{Style.RESET_ALL}"
                     f"{Fore.RED+Style.BRIGHT} Web3 Not Connected {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
                 )
                 return
             
             self.used_nonce[address] = web3.eth.get_transaction_count(address, "pending")
             
-        if option == 1:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Claim Faucet {Style.RESET_ALL}"
-            )
-            
-            await self.process_option_1(account, address, use_proxy)
+            if option == 1:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Claim Faucet {Style.RESET_ALL}"
+                )
+                
+                await self.process_option_1(account, address, use_proxy)
 
-        elif option == 2:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Open Potition {Style.RESET_ALL}"
-            )
+            elif option == 2:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Open Potition {Style.RESET_ALL}"
+                )
 
-            await self.process_option_2(account, address, use_proxy)
-
-        elif option == 3:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Close Potition {Style.RESET_ALL}"
-            )
-
-            await self.process_option_3(account, address, use_proxy)
-
-        elif option == 4:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Deposit Liquidity {Style.RESET_ALL}"
-            )
-
-            await self.process_option_4(account, address, use_proxy)
-
-        elif option == 5:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Withdraw Liquidity {Style.RESET_ALL}"
-            )
-
-            await self.process_option_5(account, address, use_proxy)
-
-        else:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
-                f"{Fore.BLUE+Style.BRIGHT} Run All Features {Style.RESET_ALL}"
-            )
-
-            await self.process_option_1(account, address, use_proxy)
-            await asyncio.sleep(5)
-            
-            if self.potition_option == 1:
                 await self.process_option_2(account, address, use_proxy)
-            elif self.potition_option == 2:
+
+            elif option == 3:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Close Potition {Style.RESET_ALL}"
+                )
+
                 await self.process_option_3(account, address, use_proxy)
 
-            await asyncio.sleep(5)
+            elif option == 4:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Deposit Liquidity {Style.RESET_ALL}"
+                )
 
-            if self.lp_option == 1:
                 await self.process_option_4(account, address, use_proxy)
 
-            elif self.lp_option == 2:
+            elif option == 5:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Withdraw Liquidity {Style.RESET_ALL}"
+                )
+
                 await self.process_option_5(account, address, use_proxy)
+
+            else:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Option  :{Style.RESET_ALL}"
+                    f"{Fore.BLUE+Style.BRIGHT} Run All Features {Style.RESET_ALL}"
+                )
+
+                await self.process_option_1(account, address, use_proxy)
+                await asyncio.sleep(5)
+                
+                if self.potition_option == 1:
+                    await self.process_option_2(account, address, use_proxy)
+                elif self.potition_option == 2:
+                    await self.process_option_3(account, address, use_proxy)
+
+                await asyncio.sleep(5)
+
+                if self.lp_option == 1:
+                    await self.process_option_4(account, address, use_proxy)
+
+                elif self.lp_option == 2:
+                    await self.process_option_5(account, address, use_proxy)
 
     async def main(self):
         try:
             with open('accounts.txt', 'r') as file:
                 accounts = [line.strip() for line in file if line.strip()]
             
-            option, use_proxy_choice, rotate_proxy = self.print_question()
+            option, proxy_choice, rotate_proxy = self.print_question()
 
             while True:
-                use_proxy = False
-                if use_proxy_choice in [1, 2]:
-                    use_proxy = True
+                use_proxy = True if proxy_choice == 1 else False
 
                 self.clear_terminal()
                 self.welcome()
@@ -1428,7 +1418,7 @@ class Brokex:
                 )
 
                 if use_proxy:
-                    await self.load_proxies(use_proxy_choice)
+                    await self.load_proxies()
                 
                 separator = "=" * 25
                 for account in accounts:
